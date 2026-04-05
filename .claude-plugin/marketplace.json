@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "my-skills",
-      "source": ".",
+      "source": "./",
       "description": "Personal development workflow skills: brainstorming, planning, TDD, debugging, verification, review, and Codex integration"
     }
   ]
