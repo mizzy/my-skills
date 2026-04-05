@@ -45,6 +45,17 @@ Pick an Issue that:
 
 If invoked without preference, select the lowest-numbered available task that satisfies the above.
 
+### Step 3.5: Read Issue Details
+
+Read the full issue body and all comments:
+
+```
+gh issue view <issue-number>
+gh issue view <issue-number> --comments
+```
+
+Use the information from the body and comments to fully understand the requirements, context, and any discussion before starting implementation.
+
 ### Step 4: Create Worktree
 
 ```
