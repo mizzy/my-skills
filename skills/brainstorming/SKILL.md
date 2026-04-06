@@ -81,6 +81,12 @@ Create a Draft PR containing the design document and implementation plan:
 gh pr create --draft --title "<feature>: design and implementation plan" --body "..."
 ```
 
+After creating the PR, enable auto-merge:
+
+```
+gh pr merge --auto --squash
+```
+
 ### Step 10: Create GitHub Issues
 
 Create one Issue per task from the plan:
