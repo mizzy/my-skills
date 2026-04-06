@@ -99,12 +99,30 @@ Create one Issue per task from the plan:
   - Sequence: `task-1/N`, `task-2/N`, etc.
 - **Reference**: Link to the Draft PR
 
+### Step 11: Wait for Auto-Merge and Cleanup
+
+Wait for the PR to be merged:
+
+```
+gh pr checks --watch
+gh pr view --json state --jq '.state' # confirm MERGED
+```
+
+Once merged, switch to main, update, and clean up:
+
+```
+git wt main
+git pull
+git fetch --prune
+git wt -d <feature-name>
+```
+
 ### Terminal State
 
 Brainstorming ends here. The output is:
 1. Design document
 2. Implementation plan
-3. Draft PR
+3. Draft PR (merged)
 4. GitHub Issues ready for `pick-issue`
 
 No implementation code is written. No other implementation skills are invoked.
