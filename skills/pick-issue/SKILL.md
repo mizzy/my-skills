@@ -80,9 +80,17 @@ After implementation is complete, invoke the **verify** skill automatically.
 - All must pass with evidence (command output + exit codes)
 - If verify fails, go back to debugging
 
-### Step 7: Review (5 rounds)
+### Step 7: Simplify
 
-After verify passes, invoke the **review** skill automatically.
+After verify passes, invoke `/simplify` automatically.
+
+- Reviews changed code for reuse, quality, and efficiency
+- Fixes any issues found
+- Re-run **verify** if changes were made
+
+### Step 8: Review (5 rounds)
+
+After simplify passes, invoke the **review** skill automatically.
 
 The review runs 5 iterations:
 1. Each round examines the diff against the plan/spec
@@ -90,7 +98,18 @@ The review runs 5 iterations:
 3. Next round starts fresh
 4. Continue until 5 rounds complete or a round finds no issues
 
-### Step 8: Create PR
+### Step 9: Explain Implementation
+
+After review passes, explain the implementation to the user **in Japanese** in the chat:
+
+- What was implemented and why
+- Key design decisions and trade-offs
+- How the code works at a high level
+- Any notable points (e.g., edge cases handled, patterns used)
+
+Keep it concise but informative so the user can understand the changes without reading every line of code.
+
+### Step 10: Create PR
 
 After review passes:
 
@@ -98,7 +117,7 @@ After review passes:
 gh pr create --draft --title "<short description>" --body "Closes #<issue-number>\n\n..."
 ```
 
-### Step 9: Close Issue
+### Step 11: Close Issue
 
 The PR body's `Closes #N` handles this automatically via GitHub.
 
