@@ -98,16 +98,9 @@ The review runs 5 iterations:
 3. Next round starts fresh
 4. Continue until 5 rounds complete or a round finds no issues
 
-### Step 9: Ultra Review
+### Step 9: Explain Implementation
 
-After review passes, run `/ultrareview` automatically.
-
-- Fix any issues found
-- Re-run **verify** if changes were made
-
-### Step 10: Explain Implementation
-
-After ultrareview passes, explain the implementation to the user **in Japanese** in the chat:
+After review passes, explain the implementation to the user **in Japanese** in the chat:
 
 - What was implemented and why
 - Key design decisions and trade-offs
@@ -116,7 +109,7 @@ After ultrareview passes, explain the implementation to the user **in Japanese**
 
 Keep it concise but informative so the user can understand the changes without reading every line of code.
 
-### Step 11: Create PR
+### Step 10: Create PR
 
 After review passes:
 
@@ -124,7 +117,7 @@ After review passes:
 gh pr create --draft --title "<short description>" --body "Closes #<issue-number>\n\n..."
 ```
 
-### Step 12: Close Issue
+### Step 11: Close Issue
 
 The PR body's `Closes #N` handles this automatically via GitHub.
 
