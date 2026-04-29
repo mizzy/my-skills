@@ -64,6 +64,34 @@ git wt <issue-branch-name>
 
 Branch name format: `issue-<number>-<short-description>`
 
+### Step 4.5: Confirm design approach when the issue lists multiple options
+
+Before invoking **tdd**, re-read the issue body. If the issue presents
+multiple plausible design options without endorsing one (typical
+phrasing: "Option A: ... Option B: ...", "Two viable shapes:", "Either
+way, ..."), **stop and ask the user which option to take**. Do not pick
+one yourself, even when one option is obviously narrower than the
+other. Different designs trade different things (type-level proof,
+blast radius, future extensibility, naming hygiene); only the user has
+the weights.
+
+Useful data to gather before asking — but not before deciding:
+
+- Rough call-site impact: stub the change with a placeholder
+  (e.g. add the variant / field with no body), run
+  `cargo check --workspace --all-targets 2>&1 | grep -E "^error" | wc -l`,
+  revert the stub. The number quantifies the radius for each option.
+- Existing tests / docs that already imply one option.
+
+Surface options + measurements to the user, then wait. The choice is
+the user's. Only when the issue body unambiguously endorses one option
+(or earlier user instruction did) may you proceed without asking.
+
+Past failure: in carina #2229 I implemented case A, hit ~80 errors,
+reverted, re-implemented as case B, and reported the pivot as my
+decision. The user pushed back: "むしろ、そこで勝手に設計判断されると困るんだが".
+Right. Measure freely; decide never.
+
 ### Step 5: Implement with TDD
 
 Invoke the **tdd** skill. Follow Red-Green-Refactor strictly.
@@ -78,6 +106,13 @@ After implementation is complete, invoke the **verify** skill automatically.
 
 - Run all tests, linter, and build
 - All must pass with evidence (command output + exit codes)
+- **Also run any repo-specific CI gates that are not part of the build
+  tool.** Many projects wire custom check scripts into
+  `.github/workflows/*.yml` (e.g. `bash scripts/check-*.sh`) that
+  `cargo` / `npm test` / `go test` never invoke. Local build-tool green
+  is *not* CI green — these scripts gate the PR too. Quick scan:
+  `grep -rE "run: bash" .github/workflows/`. Run each one locally before
+  declaring verify done.
 - If verify fails, go back to debugging
 
 ### Step 7: Simplify
@@ -98,6 +133,13 @@ The review runs 5 iterations:
 3. Next round starts fresh
 4. Continue until 5 rounds complete or a round finds no issues
 
+**Do not skip or shorten this step.** "The change is small", "it's
+obvious", "just a bug fix", "the user is waiting" are not valid
+reasons. 5 rounds means launching 5 separate review agents, each
+reading the current diff fresh. If any round produces fixes, re-verify
+before the next round. Skipping this step is a recurring failure mode
+that has had to be called out across many PRs — the rule is absolute.
+
 ### Step 9: Explain Implementation
 
 After review passes, explain the implementation to the user **in Japanese** in the chat:
@@ -111,11 +153,39 @@ Keep it concise but informative so the user can understand the changes without r
 
 ### Step 10: Create PR
 
-After review passes:
+After review passes, **commit, push, and open the PR without pausing
+for confirmation**. The end of the flow is "PR is open and the URL is
+reported", not "ready to commit if the user agrees". Pausing here was
+a recurring frustration; the user has explicitly said the full
+pick-issue flow runs to completion without a confirmation gate.
 
 ```
-gh pr create --draft --title "<short description>" --body "Closes #<issue-number>\n\n..."
+gh pr create --title "<short description>" --body "Closes #<issue-number>\n\n..."
 ```
+
+By default create a non-draft PR. Use `--draft` only when the project
+explicitly requests draft PRs.
+
+The "destructive operations need confirmation" rule still applies for
+things like `git push --force` or `git reset --hard`, but a fresh-branch
+commit + push + open PR is not destructive — it is the expected end
+state of the flow. Stop **at PR creation, not at merge**: merging still
+requires explicit user instruction (use the **merge-when-ready** skill
+for that).
+
+### Step 10.5: Optional — register a CI watch
+
+If `gh wait` (https://github.com/k1LoW/gh-wait) is installed, register
+a watch so a desktop notification fires when CI finishes:
+
+```
+gh wait pr --ci-completed --notify
+```
+
+This replaces ad-hoc `until ... gh pr checks ...; do sleep N; done`
+polling loops, which leak orphan `sleep` processes when their parent
+shell dies. If `gh wait` is not available, just report the PR URL and
+leave CI polling to the user / **merge-when-ready** skill.
 
 ### Step 11: Close Issue
 
