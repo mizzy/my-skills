@@ -173,20 +173,6 @@ state of the flow. Stop **at PR creation, not at merge**: merging still
 requires explicit user instruction (use the **merge-when-ready** skill
 for that).
 
-### Step 10.5: Optional — register a CI watch
-
-If `gh wait` (https://github.com/k1LoW/gh-wait) is installed, register
-a watch so a desktop notification fires when CI finishes:
-
-```
-gh wait pr --ci-completed --notify
-```
-
-This replaces ad-hoc `until ... gh pr checks ...; do sleep N; done`
-polling loops, which leak orphan `sleep` processes when their parent
-shell dies. If `gh wait` is not available, just report the PR URL and
-leave CI polling to the user / **merge-when-ready** skill.
-
 ### Step 11: Close Issue
 
 The PR body's `Closes #N` handles this automatically via GitHub.
