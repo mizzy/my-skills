@@ -92,6 +92,40 @@ reverted, re-implemented as case B, and reported the pivot as my
 decision. The user pushed back: "むしろ、そこで勝手に設計判断されると困るんだが".
 Right. Measure freely; decide never.
 
+### Step 4.6: Root-cause fixes only — no bandaids, no per-symptom carve-outs
+
+**This rule applies to every bug-fix Issue picked up in this flow.** When
+fixing a bug, fix the root cause, not the symptom. If the same broken
+invariant produces symptoms in multiple code paths, the correct fix is
+the *one* upstream change that restores the invariant, not a filter /
+guard / carve-out at every consumer site.
+
+- **Never propose "minimal fix in this PR, follow-up issue for the
+  rest"** when "the rest" is the same class of bug at sibling call
+  sites. That is a bandaid presented as scope discipline. The correct
+  framing is: this is one bug, fix the root.
+- **Never invoke "1 PR = 1 topic" to justify a per-site patch.** "1
+  topic" means one *root cause*, not "one of several symptoms of the
+  same root cause." Fixing the root *is* the topic.
+- **Self-check before opening a PR:** if the diff filters / guards /
+  skips for the buggy condition instead of removing the condition
+  itself, the fix is symptom-level. Step back and find the upstream
+  seam.
+- **5-round review passing is NOT evidence the fix is root-cause.** A
+  bandaid can pass every gate. Ask "if a new caller appears tomorrow,
+  does it need to remember this filter too?" — if yes, the root is
+  still broken.
+- **When in doubt, pick the broader fix.** Past failure mode: shrinking
+  scope and offering a follow-up has been pushed back on every single
+  time. Do not present "fix here + follow-up for sibling" — fix the
+  root once.
+- **Prefer type-level solutions when the language supports them.**
+  Newtypes, tagged unions, typestate — over runtime filters at every
+  consumer. Make the broken state unrepresentable.
+
+If the Issue is not a bug fix (e.g., a new feature or refactor), this
+step is a no-op — proceed to Step 5.
+
 ### Step 5: Implement with TDD
 
 Invoke the **tdd** skill. Follow Red-Green-Refactor strictly.
