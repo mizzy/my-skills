@@ -60,7 +60,11 @@ Contents:
 
 ### Step 6: Invoke Plan Skill
 
-Invoke the **plan** skill to create the implementation plan. The plan skill handles task decomposition and saves the plan document.
+Invoke the **plan** skill to create the implementation plan. The plan
+skill delegates the plan-writing to Codex (Codex writes broad, deep, and
+short; Opus reviews as the critic) and handles task decomposition. The
+design document above is docs Opus authors; the implementation *plan* is
+delegated to Codex and reviewed by Opus.
 
 ### Step 7: Self-Review
 

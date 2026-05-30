@@ -15,8 +15,15 @@ If you wrote code before a test, delete it and start over. No exceptions.
 
 ## When to Use
 
-- Called automatically from **pick-issue**
+- Called from **pick-issue** / **codex** to govern how implementation code is written
 - Any time implementation code is being written
+
+**Opus does not hand-write implementation code — it delegates the
+writing to Codex** (see the **codex** skill). Opus owns intent and
+review; Codex owns thorough execution. This skill is the Red-Green-
+Refactor discipline that the delegated code must follow. The Iron Law
+applies regardless of who types it: a failing test must precede the
+production code.
 
 ## The Cycle
 

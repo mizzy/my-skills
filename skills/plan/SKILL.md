@@ -9,6 +9,17 @@ description: "Use when creating implementation plans from specs or design docume
 
 Creates bite-sized, actionable implementation plans from specs or design documents. Each task is a single TDD cycle (2-5 minutes).
 
+**Codex writes the plan; Opus reviews it.** Codex writes plans more
+token-efficiently — broad, deep, and short — whereas Opus over-dives
+into detail when it writes a plan itself. So Opus stays the critic
+("ツッコミ役"): delegate the plan-writing to Codex via the **codex**
+skill, then review what comes back against this skill's quality bar.
+Opus does not hand-write the plan; Opus does not edit the plan file
+directly — findings go back to Codex.
+
+The steps below are the **quality bar Opus reviews against**, and the
+spec Opus hands to Codex — not a checklist for Opus to execute by hand.
+
 ## When to Use
 
 - Called automatically from **brainstorming**
@@ -70,13 +81,20 @@ Detect the project's actual setup and use the appropriate command.
 
 ### Step 5: Save Plan
 
-Save to `docs/plans/YYYY-MM-DD-<feature-name>.md` in the worktree.
+Codex saves the plan to `docs/plans/YYYY-MM-DD-<feature-name>.md` in the
+worktree. (A plan document is part of the docs Opus owns conceptually,
+but the writing is still delegated to Codex — Opus directs and reviews.)
 
-### Step 6: Self-Review
+### Step 6: Review the plan (Opus as critic)
 
-Check the plan against the spec:
+Opus reviews Codex's plan against the spec. Be the critic — poke holes,
+find gaps, name what's missing:
 - Every requirement covered?
 - No placeholder patterns?
 - Type consistency across tasks?
 - Task order respects dependencies?
 - Each task is independently verifiable?
+
+Findings go **back to Codex** to revise the plan. Do not rewrite the
+plan yourself — point out the problems and let Codex apply the fixes.
+Repeat review → revise until the plan clears the bar.

@@ -40,10 +40,15 @@ Systematic root cause investigation before attempting fixes. No guessing, no ran
 3. Test minimally - change ONE thing
 4. Verify the prediction matches
 
-### Phase 4: Implement Fix
+### Phase 4: Implement Fix (delegated to Codex)
 
-1. Write a failing test that reproduces the bug
-2. Implement the fix
+The investigation and the root-cause hypothesis above are Opus's
+read-and-think work. The fix itself is **code**, so Opus does not write
+it — delegate the edits to Codex (via the **codex** skill), carrying the
+root cause and the hypothesis down. Opus reviews the result.
+
+1. A failing test that reproduces the bug must come first
+2. Codex implements the fix per the root-cause hypothesis
 3. Verify the test passes
 4. Run the full test suite to check for regressions
 
