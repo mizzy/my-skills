@@ -184,7 +184,7 @@ would re-introduce the same bug. The typed reshape
 landing in the same PR. The lesson is to apply *both* lenses at PR
 creation, not after the user asks.
 
-### Step 5: Implement with TDD
+### Step 5: Implement with TDD (delegated to Codex)
 
 The structure for implementation is multi-tier subcontracting:
 
@@ -192,31 +192,24 @@ The structure for implementation is multi-tier subcontracting:
 人間 ←→ Opus (you) ←→ Codex
 ```
 
-You (Opus) are good at grasping the user's intent and capturing the
-essence; writing code directly produces too many mistakes and rework.
-Codex is good at executing an implementation thoroughly; left alone it
-can lose sight of the essence. So you own intent, design, and review —
-and delegate the code-writing to Codex when the work is large.
+**Opus only reads, thinks, and reviews — it writes nothing but docs.**
+You are good at grasping the user's intent and capturing the essence,
+but editing code directly produces too many mistakes and rework. Codex
+is good at executing thoroughly; left alone it loses the essence. So you
+own intent, design, and review, and **delegate the code-writing to Codex**.
 
-**Decide case by case whether this Issue is "large".** There is no
-fixed threshold — use judgement. Typical signals: the work spans
-multiple files, it's a new feature, it's a non-trivial refactor, or
-hand-coding it would risk the kind of mistakes-and-rework Opus is prone
-to.
+Invoke the **codex** skill to implement. Carry the intent, the design
+you've settled on, and the concrete TDD scope down to Codex. Codex
+follows Red-Green-Refactor via the **tdd** skill; you review what comes
+back against the essence before accepting it. TDD's Iron Law holds for
+the delegated code: no production code without a failing test first.
 
-- **Large** → invoke the **codex** skill to delegate the implementation.
-  Carry the intent, the design you've settled on, and the concrete TDD
-  scope down to Codex. Codex follows Red-Green-Refactor; you review what
-  comes back against the essence before accepting it.
-- **Small / local / single-file** → invoke the **tdd** skill and
-  implement it yourself directly. Follow Red-Green-Refactor strictly.
-
-Either way, TDD's Iron Law holds: no production code without a failing
-test first, whether the code is hand-written or delegated.
+If review finds problems, point them out and send them **back to Codex**
+to fix — do not edit the files yourself.
 
 If a test fails unexpectedly or implementation hits a problem:
 - Invoke the **debugging** skill automatically
-- If debugging fails 3 times, invoke the **codex** skill automatically
+- If debugging fails 3 times, escalate further via the **codex** skill
 
 ### Step 6: Verify
 
@@ -233,13 +226,21 @@ After implementation is complete, invoke the **verify** skill automatically.
   declaring verify done.
 - If verify fails, go back to debugging
 
-### Step 7: Simplify
+### Step 7: Simplify / clean up (Opus points, Codex edits)
 
-After verify passes, invoke `/simplify` automatically.
+Codex writes code that is "safe but dirty," so a cleanup pass always
+follows. Cleanup judgement is Opus's strength — but Opus editing the
+files directly reintroduces mistakes. So **Opus identifies what to clean
+up and points it out; Codex applies the actual edits.**
 
-- Reviews changed code for reuse, quality, and efficiency
-- Fixes any issues found
-- Re-run **verify** if changes were made
+After verify passes:
+
+- Use `/simplify` / review the changed code for reuse, quality,
+  duplication, naming, dead code, and efficiency — this is the
+  *reading and judgement* part, which is Opus's job.
+- Hand the concrete list of cleanups to Codex (via the **codex** skill)
+  and have **Codex apply the edits**. Do not edit the files yourself.
+- Re-run **verify** if changes were made.
 
 ### Step 8: Review (5 rounds)
 
