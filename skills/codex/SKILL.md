@@ -78,24 +78,78 @@ Never delegate vague requests ("fix this bug", "build the feature",
 "make a plan", "clean this up"). Give Codex the essence *and* the
 concrete scope so it executes thoroughly without drifting from the point.
 
+Choose execution flags deliberately:
+
+- Use `--write` for implementation and refactor work that edits files.
+  For review-purpose investigation, diagnosis, or research that must not
+  edit, omit `--write` or make the run explicitly read-only.
+- Choose foreground/background as the Claude Code execution mode when
+  invoking the subagent: foreground for small, clearly bounded work,
+  roughly 1-2 files; background for large, open-ended, multi-step, or
+  long-running work. When unclear, prefer background.
+- Use `--resume` for "continue", "keep going", "resume", "apply the top
+  fix", or "dig deeper"; it continues the previous Codex thread
+  (`resume-last`). Use `--fresh` when the work should start a new thread.
+- Leave `--effort` unset unless the user explicitly asks. If set, it
+  accepts `none`, `minimal`, `low`, `medium`, `high`, or `xhigh`.
+- Leave `--model` unset unless the user asks. Map `spark` to
+  `gpt-5.3-codex-spark`.
+
 For refactor specifically: hand Codex the **list of issues you found**
 and have it apply the edits. Do not edit the files yourself.
+
+### Step 2.5: Track the Job
+
+For foreground runs, the result returns inline; no lifecycle
+management is needed.
+
+For background runs, delegation is not fire-and-forget. Opus is
+responsible for collecting and reviewing the result, and tracks the job
+itself by running the companion script via Bash:
+
+- Check status: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status` (optionally pass a job id)
+- Fetch result: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" result <job-id>`
+- Cancel a run: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" cancel <job-id>`
+
+The `/codex:status`, `/codex:result`, and `/codex:cancel` slash commands
+exist for the user to type interactively. Opus uses the underlying script
+directly because the slash-command form has `disable-model-invocation:
+true` and is not model-invocable.
 
 ### Step 3: Review (this is Opus's job)
 
 Whatever Codex returns is a **draft**, not an accepted change.
 
-- Read it carefully and understand the reasoning
-- Check it against the **essence**: did it stay on the point, or get
+Opus's top review priority is root cause. No bandaids, no per-symptom
+carve-outs at sibling call sites, no local patch that leaves the broken
+state reachable. Take the long-term view: will a future caller re-reach
+the same state, and should the type system make that state impossible?
+Codex's "safe but dirty" output tends toward symptom-level fixes, so
+this is exactly what Opus must catch first.
+
+Then interrogate the draft concretely:
+
+- Does it match the **essence** and stay on the point, or did Codex get
   lost in details and miss what the user actually wanted?
-- For plans: play the critic — poke holes, find gaps, name what's missing
-- Do NOT blindly accept the output
+- Is the code safe but dirty: over-localized, duplicated, overly
+  defensive, or structurally harder to maintain?
+- What did Codex miss?
+- For plans: play the critic — poke holes, find gaps, name what's missing.
+- For code: suspect the draft at the edges — empty-state, null, and
+  timeout behavior; race conditions and ordering; rollback, retry, and
+  idempotency; data loss or corruption; auth, permission, and trust
+  boundaries; version, schema, and migration skew.
 
 This review step is exactly where Opus earns its place in the chain:
 Codex executes completely but can lose the thread and writes dirty code;
 Opus holds the thread and knows what clean looks like. If review finds
 problems, point them out and send them **back to Codex to fix** — don't
 fix them yourself.
+
+Do not loop forever. If Opus sends a finding back to Codex and the same
+finding is still not fixed after a second round, stop re-delegating and
+switch tactics: change how the instruction is phrased, re-cut the scope,
+or question Opus's own premise.
 
 ### Step 4: Verify via TDD
 
@@ -116,3 +170,6 @@ Use the **verify** skill to confirm the result works with evidence.
 - Skipping verification because "Codex said so"
 - Delegating without carrying the intent/essence down
 - Delegating vague requests with no concrete scope
+- Fire-and-forget background delegation without collecting the result
+- Infinite re-delegation loops when the same finding remains unfixed
+- Treating symptom-level bandaids as root-cause fixes
