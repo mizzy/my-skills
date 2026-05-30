@@ -186,7 +186,33 @@ creation, not after the user asks.
 
 ### Step 5: Implement with TDD
 
-Invoke the **tdd** skill. Follow Red-Green-Refactor strictly.
+The structure for implementation is multi-tier subcontracting:
+
+```
+人間 ←→ Opus (you) ←→ Codex
+```
+
+You (Opus) are good at grasping the user's intent and capturing the
+essence; writing code directly produces too many mistakes and rework.
+Codex is good at executing an implementation thoroughly; left alone it
+can lose sight of the essence. So you own intent, design, and review —
+and delegate the code-writing to Codex when the work is large.
+
+**Decide case by case whether this Issue is "large".** There is no
+fixed threshold — use judgement. Typical signals: the work spans
+multiple files, it's a new feature, it's a non-trivial refactor, or
+hand-coding it would risk the kind of mistakes-and-rework Opus is prone
+to.
+
+- **Large** → invoke the **codex** skill to delegate the implementation.
+  Carry the intent, the design you've settled on, and the concrete TDD
+  scope down to Codex. Codex follows Red-Green-Refactor; you review what
+  comes back against the essence before accepting it.
+- **Small / local / single-file** → invoke the **tdd** skill and
+  implement it yourself directly. Follow Red-Green-Refactor strictly.
+
+Either way, TDD's Iron Law holds: no production code without a failing
+test first, whether the code is hand-written or delegated.
 
 If a test fails unexpectedly or implementation hits a problem:
 - Invoke the **debugging** skill automatically

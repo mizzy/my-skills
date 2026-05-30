@@ -15,8 +15,14 @@ If you wrote code before a test, delete it and start over. No exceptions.
 
 ## When to Use
 
-- Called automatically from **pick-issue**
-- Any time implementation code is being written
+- Called automatically from **pick-issue** for small / local / single-file work
+- Any time implementation code is being written directly
+
+For **large development** (multiple files, new feature, non-trivial
+refactor), the implementation is delegated to Codex via the **codex**
+skill rather than hand-written here — Opus owns intent and review,
+Codex owns thorough execution. The TDD Iron Law still applies to that
+delegated code: a failing test must precede the production code.
 
 ## The Cycle
 
