@@ -27,7 +27,7 @@ gh issue list --state open --label "task-*"
 Check for other worktrees that may indicate parallel agents working:
 
 ```
-git wt
+git worktree list
 ```
 
 For each existing worktree, check which files are being modified:
@@ -59,7 +59,8 @@ Use the information from the body and comments to fully understand the requireme
 ### Step 4: Create Worktree
 
 ```
-git wt <issue-branch-name>
+git worktree add .worktrees/<issue-branch-name> -b <issue-branch-name>
+cd .worktrees/<issue-branch-name>
 ```
 
 Branch name format: `issue-<number>-<short-description>`

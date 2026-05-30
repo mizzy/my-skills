@@ -22,7 +22,8 @@ Design exploration before any implementation. This skill produces a design docum
 ### Step 1: Create Worktree
 
 ```
-git wt <feature-name>
+git worktree add .worktrees/<feature-name> -b <feature-name>
+cd .worktrees/<feature-name>
 ```
 
 All brainstorming artifacts are created in this worktree.
@@ -115,10 +116,11 @@ gh pr view --json state --jq '.state' # confirm MERGED
 Once merged, switch to main, update, and clean up:
 
 ```
-git wt main
+cd <main-worktree-path>
 git pull
 git fetch --prune
-git wt -d <feature-name>
+git worktree remove .worktrees/<feature-name>
+git branch -d <feature-name>
 ```
 
 ### Terminal State
