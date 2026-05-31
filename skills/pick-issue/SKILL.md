@@ -236,9 +236,16 @@ up and points it out; Codex applies the actual edits.**
 
 After verify passes:
 
-- Use `/simplify` / review the changed code for reuse, quality,
-  duplication, naming, dead code, and efficiency — this is the
-  *reading and judgement* part, which is Opus's job.
+- Use `/code-review` (effort `medium`, **without `--fix`**) to review the
+  changed code for reuse, quality, duplication, naming, dead code, and
+  efficiency — this is the *reading and judgement* part, which is Opus's
+  job. `/code-review` supersedes `/simplify` here: it covers the same
+  quality cleanups and also surfaces correctness bugs. Do **not** pass
+  `--fix` — letting it edit the working tree would bypass the
+  Opus-points / Codex-edits split below.
+- Keep effort at `low`/`medium`: the deep bug hunt belongs to the
+  **review** skill in Step 8, so this pass stays a quality cleanup with
+  light bug-spotting and avoids duplicating Step 8.
 - Hand the concrete list of cleanups to Codex (via the **codex** skill)
   and have **Codex apply the edits**. Do not edit the files yourself.
 - Re-run **verify** if changes were made.
