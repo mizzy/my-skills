@@ -1,6 +1,6 @@
 # my-skills
 
-Personal Claude Code skills for a design-first, TDD-driven development workflow: brainstorming, planning, TDD, debugging, verification, review, and Codex integration.
+Personal Claude Code skills for a design-first, TDD-driven development workflow: brainstorming, planning, TDD, debugging, verification, review, merge, and Codex integration.
 
 ## Skills
 
@@ -13,6 +13,7 @@ Personal Claude Code skills for a design-first, TDD-driven development workflow:
 | `debugging` | Systematic root-cause investigation before any fix attempt. |
 | `verify` | Require evidence (commands + output) before claiming work is complete. |
 | `review` | Run 5 rounds of self-review against the plan/spec, fixing issues each round. |
+| `merge-when-ready` | Wait for CI to pass, mark draft PRs ready, remove the worktree, then merge and clean up. |
 | `codex` | Delegate all hands-on work (plan-writing, implementation, refactoring) to Codex. |
 
 ## Install
