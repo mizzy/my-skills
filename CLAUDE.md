@@ -43,7 +43,7 @@ development loop, and they reference each other by name. Understanding the
 chain matters more than any single skill:
 
 ```
-brainstorming → plan → pick-issue → tdd → verify → review
+brainstorming → plan → pick-issue → tdd → verify → review → merge-when-ready
                           ↘ debugging (on failure)
 codex  = the execution substrate underneath all of the above
 ```
@@ -61,6 +61,8 @@ codex  = the execution substrate underneath all of the above
   attempts.
 - **verify** demands command output as evidence before "done."
 - **review** runs 5 self-review rounds against the plan/spec.
+- **merge-when-ready** waits for CI to pass, marks draft PRs ready, removes the
+  worktree, then merges the PR and cleans up — the final step after **review**.
 
 ### codex is the execution model
 
