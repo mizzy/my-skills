@@ -73,27 +73,44 @@ weakest at supplying for itself. Then add the stage-specific scope:
 
 ### Step 2: Delegate
 
-Use the `codex:codex-rescue` subagent with a clear, specific request.
-Never delegate vague requests ("fix this bug", "build the feature",
-"make a plan", "clean this up"). Give Codex the essence *and* the
-concrete scope so it executes thoroughly without drifting from the point.
+Delegate by invoking the `codex` CLI directly via Bash — this skill is
+self-contained and does not call out to any external subagent. Run
+Codex non-interactively with `codex exec`, passing a clear, specific
+request. Never delegate vague requests ("fix this bug", "build the
+feature", "make a plan", "clean this up"). Give Codex the essence *and*
+the concrete scope so it executes thoroughly without drifting from the
+point.
+
+Base form (pass the prompt on stdin to avoid shell-quoting issues with
+long, multi-line instructions):
+
+```bash
+codex exec -s read-only -C <repo-dir> - <<'PROMPT'
+<the essence + concrete scope>
+PROMPT
+```
 
 Choose execution flags deliberately:
 
-- Use `--write` for implementation and refactor work that edits files.
-  For review-purpose investigation, diagnosis, or research that must not
-  edit, omit `--write` or make the run explicitly read-only.
-- Choose foreground/background as the Claude Code execution mode when
-  invoking the subagent: foreground for small, clearly bounded work,
-  roughly 1-2 files; background for large, open-ended, multi-step, or
+- **Sandbox / write access** — Codex defaults to read-only. Use
+  `-s workspace-write` for implementation and refactor work that edits
+  files. For review-purpose investigation, diagnosis, or research that
+  must not edit, keep the default `-s read-only`.
+- **Foreground vs background** — choose the Claude Code Bash execution
+  mode: foreground for small, clearly bounded work, roughly 1-2 files;
+  `run_in_background: true` for large, open-ended, multi-step, or
   long-running work. When unclear, prefer background.
-- Use `--resume` for "continue", "keep going", "resume", "apply the top
-  fix", or "dig deeper"; it continues the previous Codex thread
-  (`resume-last`). Use `--fresh` when the work should start a new thread.
-- Leave `--effort` unset unless the user explicitly asks. If set, it
-  accepts `none`, `minimal`, `low`, `medium`, `high`, or `xhigh`.
-- Leave `--model` unset unless the user asks. Map `spark` to
-  `gpt-5.3-codex-spark`.
+- **Continue vs fresh thread** — for "continue", "keep going", "resume",
+  "apply the top fix", or "dig deeper", continue the previous Codex
+  thread with `codex exec resume --last - <<'PROMPT' ... PROMPT`. For
+  work that should start a new thread, use plain `codex exec`.
+- **Reasoning effort** — leave unset unless the user explicitly asks. If
+  set, pass `-c model_reasoning_effort="<level>"` where `<level>` is one
+  of `none`, `minimal`, `low`, `medium`, `high`, or `xhigh`.
+- **Model** — leave unset unless the user asks. Map `spark` to
+  `-m gpt-5.3-codex-spark`.
+- **Working directory** — pass `-C <repo-dir>` so Codex operates in the
+  intended repository root.
 
 For refactor specifically: hand Codex the **list of issues you found**
 and have it apply the edits. Do not edit the files yourself.
@@ -104,17 +121,19 @@ For foreground runs, the result returns inline; no lifecycle
 management is needed.
 
 For background runs, delegation is not fire-and-forget. Opus is
-responsible for collecting and reviewing the result, and tracks the job
-itself by running the companion script via Bash:
+responsible for collecting and reviewing the result. When a `codex exec`
+run is launched with `run_in_background: true`, the Bash tooling tracks
+it as a background task — Opus is re-invoked when it exits, and uses the
+standard task tools to manage its lifecycle:
 
-- Check status: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status` (optionally pass a job id)
-- Fetch result: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" result <job-id>`
-- Cancel a run: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" cancel <job-id>`
+- Check status / list running runs: `TaskList`
+- Fetch output so far or the final result: `TaskOutput <task-id>`
+- Cancel a run: `TaskStop <task-id>`
 
-The `/codex:status`, `/codex:result`, and `/codex:cancel` slash commands
-exist for the user to type interactively. Opus uses the underlying script
-directly because the slash-command form has `disable-model-invocation:
-true` and is not model-invocable.
+Capture each Codex run's last message to a file with
+`-o <path>` (e.g. `-o /tmp/codex-last.txt`) so the result is easy to
+read back after a long background run, and pass `--json` if you need to
+inspect the event stream.
 
 ### Step 3: Review (this is Opus's job)
 
