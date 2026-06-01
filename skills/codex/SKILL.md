@@ -104,6 +104,16 @@ Choose execution flags deliberately:
   "apply the top fix", or "dig deeper", continue the previous Codex
   thread with `codex exec resume --last - <<'PROMPT' ... PROMPT`. For
   work that should start a new thread, use plain `codex exec`.
+  - **Flag placement with `resume`** — `-s`/`--sandbox` and `-C`/`--cd`
+    are global options accepted by the top-level `codex`, *not* by the
+    `resume` subcommand (`codex exec resume --help` does not list them).
+    Put them before `exec`, e.g.
+    `codex -C <repo-dir> -s workspace-write exec resume --last - <<'PROMPT' ... PROMPT`.
+    Writing `codex exec resume -s ... -C ...` fails because `resume` does
+    not accept those flags. A `resume` thread does **not** reliably
+    inherit the previous run's sandbox mode, so pass `-s` explicitly when
+    the continuation needs write access — do not rely on inheritance or
+    fall back to a fresh thread just to get write access.
 - **Reasoning effort** — leave unset unless the user explicitly asks. If
   set, pass `-c model_reasoning_effort="<level>"` where `<level>` is one
   of `none`, `minimal`, `low`, `medium`, `high`, or `xhigh`.
