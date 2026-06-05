@@ -7,6 +7,7 @@ Personal Claude Code skills for a design-first, TDD-driven development workflow:
 | Skill | Description |
 | ----- | ----------- |
 | `brainstorming` | Explore design before implementation; produces a design doc, plan, Draft PR, and GitHub Issues. |
+| `grill-me` | Exhaustively question a plan or design one question at a time, traversing the design tree with a recommended answer for each. |
 | `plan` | Decompose specs/design docs into bite-sized TDD tasks with file paths and examples. |
 | `pick-issue` | Pick a GitHub Issue, create a worktree, implement with TDD, verify, review 5x, and open a PR. |
 | `tdd` | Enforce Red-Green-Refactor — no production code without a failing test first. |
