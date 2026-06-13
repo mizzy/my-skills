@@ -88,6 +88,28 @@ Surface options + measurements to the user, then wait. The choice is
 the user's. Only when the issue body unambiguously endorses one option
 (or earlier user instruction did) may you proceed without asking.
 
+**Exception — proceed without asking when the three lenses uniquely
+select one option.** Evaluate every option under all three:
+
+1. **Long-term view** — which option keeps working as new callers /
+   features arrive, vs. which one accumulates carve-outs?
+2. **Type safety** — which option makes the broken state
+   unrepresentable (newtype, typestate, exhaustive enum), vs. which
+   one relies on every caller remembering a convention?
+3. **Root-cause** — which option restores the invariant at the
+   upstream seam, vs. which one filters / guards / patches at
+   consumer sites?
+
+If **all three lenses point to the same option**, that is not a
+judgement call — proceed with it without asking. Note in the PR body
+which option was taken and that the three lenses uniquely selected it.
+
+Only when the three lenses disagree (e.g. one option is more
+type-safe but has wider blast radius; another is narrower but leaves
+a future caller able to re-introduce the bug) is the choice a
+weighted trade-off — that is the user's call. Surface the options
+with the per-lens verdicts and wait.
+
 Past failure: in carina #2229 I implemented case A, hit ~80 errors,
 reverted, re-implemented as case B, and reported the pivot as my
 decision. The user pushed back: "むしろ、そこで勝手に設計判断されると困るんだが".
