@@ -1,6 +1,6 @@
 ---
 name: pick-issue
-description: "Use when ready to implement - selects a GitHub Issue, creates worktree, implements with TDD, verifies, reviews 5x, and creates PR"
+description: "Use when ready to implement - selects a GitHub Issue, creates worktree, implements with TDD, verifies, reviews 5x, and creates PR. Numeric argument (e.g. pick-issue 3) is the issue number, not a parallelism count."
 ---
 
 # Pick Issue
@@ -38,12 +38,20 @@ git -C <worktree-path> diff --cached --name-only
 
 ### Step 3: Select Issue
 
+**Argument handling:** When the user invokes `pick-issue <N>` with a
+numeric argument, `<N>` is the **GitHub Issue number** to work on — not
+a parallelism count. Parallel execution is only triggered by explicit
+phrasing like "3並列で", "run 3 in parallel", etc. (see
+[Parallel Execution](#parallel-execution)).
+
 Pick an Issue that:
 1. Is not already being worked on (no matching worktree/branch)
 2. Has minimal file overlap with active worktrees
 3. Respects task dependency order (task-1/N before task-2/N, unless files don't overlap)
 
-If invoked without preference, select the lowest-numbered available task that satisfies the above.
+If invoked with a specific issue number, use that issue (after confirming
+it is open and not already in progress). If invoked without preference,
+select the lowest-numbered available task that satisfies the above.
 
 ### Step 3.5: Read Issue Details
 
