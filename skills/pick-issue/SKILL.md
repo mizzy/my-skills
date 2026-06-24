@@ -64,6 +64,32 @@ gh issue view <issue-number> --comments
 
 Use the information from the body and comments to fully understand the requirements, context, and any discussion before starting implementation.
 
+**Do not take the issue at face value.** Issues are written at a point in
+time with incomplete information. Before proceeding, question their
+assumptions:
+
+- **Has the codebase changed since the issue was filed?** The issue may
+  reference code, APIs, or behavior that no longer exists or has already
+  been refactored. Read the current code to verify assumptions still hold.
+- **Is the stated problem the actual problem?** An issue may describe a
+  symptom and prescribe a fix that doesn't address the root cause. Apply
+  the same root-cause thinking from Step 4.6 here — if the issue says
+  "add a nil check in X", ask *why* X receives nil in the first place.
+- **Is the proposed approach still the best one?** Even if the issue
+  prescribes a specific implementation, check whether the codebase now
+  offers a simpler or more correct path. New abstractions, recent
+  refactors, or upstream changes may have opened better options.
+- **Are the scope and boundaries correct?** The issue may be scoped too
+  narrowly (missing sibling cases of the same bug) or too broadly
+  (bundling unrelated changes). Re-evaluate scope against the current
+  state of the code.
+
+When you find a stale or incorrect assumption, **flag it to the user
+before proceeding** — don't silently reinterpret the issue. Explain what
+the issue says, what the code actually shows, and ask how to proceed.
+The exception is when the discrepancy is trivially resolvable (e.g., a
+file was renamed but the intent is clear).
+
 ### Step 4: Create Worktree
 
 ```
