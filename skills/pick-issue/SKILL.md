@@ -14,6 +14,42 @@ The implementation driver. Picks a GitHub Issue, creates an isolated worktree, i
 - After **brainstorming** has created Issues
 - When there are open Issues to implement
 
+## Autonomy Contract — run to completion in one turn
+
+**pick-issue is a single continuous flow, not a menu of independent
+steps.** Once invoked, Step 1 through Step 10 execute in the *same turn*
+without returning control to the user between steps. The end state is
+"PR is open and the URL has been reported" — nothing earlier counts as a
+stopping point.
+
+- **Never end the turn between Steps 5–10.** Finishing tdd, verify,
+  simplify, or review is *not* a stopping point — it is a handoff to the
+  next step's tool call in the same turn. When a delegated tool
+  (`codex exec`, `TaskOutput`, the **verify** / **review** skills)
+  returns, the very next action is the following step's first tool
+  call. No summary paragraph, no "shall I continue?", no silent
+  turn-end.
+- **The only legitimate stops are:**
+  1. Step 3.5 — a stale/incorrect issue assumption that requires user
+     input to resolve.
+  2. Step 4.5 — the issue lists multiple design options and the three
+     lenses do *not* uniquely select one.
+  3. Step 5 — **debugging** has failed 3 times *and* the **codex**
+     escalation also cannot resolve it.
+  4. Step 10 — PR is open and the URL has been reported.
+- **NG patterns that have caused past frustration — do not do these:**
+  - "実装が完了しました。verifyに進んでよいですか?" ← forbidden, run verify.
+  - "verify通りました。reviewに進みます。" then turn ends ← forbidden,
+    start review in the same turn.
+  - "5ラウンドのreviewが完了しました。" then turn ends ← forbidden,
+    proceed to Step 9/10.
+  - Any variant of "次のステップに進めますか?" between Steps 5–10 ←
+    forbidden. The user has already answered yes by invoking pick-issue.
+- **Progress narration is fine; permission-seeking is not.** A one-line
+  "verify通過、reviewラウンド1を開始" before the next tool call is welcome.
+  A trailing question or a bare status report with no follow-up tool
+  call is a turn-end and is forbidden.
+
 ## Process
 
 ### Step 1: List Open Issues
@@ -268,6 +304,10 @@ If a test fails unexpectedly or implementation hits a problem:
 - Invoke the **debugging** skill automatically
 - If debugging fails 3 times, escalate further via the **codex** skill
 
+**→ Next: proceed to Step 6 in the same turn.** When Codex reports
+implementation complete, immediately issue the first verify command.
+Do not summarize and stop.
+
 ### Step 6: Verify
 
 After implementation is complete, invoke the **verify** skill automatically.
@@ -282,6 +322,9 @@ After implementation is complete, invoke the **verify** skill automatically.
   `grep -rE "run: bash" .github/workflows/`. Run each one locally before
   declaring verify done.
 - If verify fails, go back to debugging
+
+**→ Next: proceed to Step 7 in the same turn.** As soon as verify is
+green, invoke `/code-review` — do not stop to report "verify passed".
 
 ### Step 7: Simplify / clean up (Opus points, Codex edits)
 
@@ -306,6 +349,9 @@ After verify passes:
   and have **Codex apply the edits**. Do not edit the files yourself.
 - Re-run **verify** if changes were made.
 
+**→ Next: proceed to Step 8 in the same turn.** After simplify (and any
+re-verify) finishes, launch the first review round immediately.
+
 ### Step 8: Review (5 rounds)
 
 After simplify passes, invoke the **review** skill automatically.
@@ -323,24 +369,22 @@ reading the current diff fresh. If any round produces fixes, re-verify
 before the next round. Skipping this step is a recurring failure mode
 that has had to be called out across many PRs — the rule is absolute.
 
-### Step 9: Explain Implementation
+**→ Next: proceed to Step 9 and Step 10 in the same turn.** "5 rounds
+completed" is *not* a stopping point — it is the cue to commit, push,
+and open the PR. Do not end the turn on a review-complete report.
 
-After review passes, explain the implementation to the user **in Japanese** in the chat:
-
-- What was implemented and why
-- Key design decisions and trade-offs
-- How the code works at a high level
-- Any notable points (e.g., edge cases handled, patterns used)
-
-Keep it concise but informative so the user can understand the changes without reading every line of code.
-
-### Step 10: Create PR
+### Step 9: Create PR
 
 After review passes, **commit, push, and open the PR without pausing
 for confirmation**. The end of the flow is "PR is open and the URL is
 reported", not "ready to commit if the user agrees". Pausing here was
 a recurring frustration; the user has explicitly said the full
 pick-issue flow runs to completion without a confirmation gate.
+
+Do PR creation *before* the Japanese explanation (Step 10). Writing the
+explanation first tends to feel like a natural end-of-turn and has led
+to silent turn-ends before the PR is opened; opening the PR first makes
+the URL the visible completion marker.
 
 ```
 gh pr create --title "<short description>" --body "Closes #<issue-number>\n\n..."
@@ -355,6 +399,24 @@ commit + push + open PR is not destructive — it is the expected end
 state of the flow. Stop **at PR creation, not at merge**: merging still
 requires explicit user instruction (use the **merge-when-ready** skill
 for that).
+
+**→ Next: proceed to Step 10 in the same turn.** After the PR URL is
+reported, immediately write the Japanese explanation. Do not end the
+turn on the PR URL alone when Step 10 has not yet run.
+
+### Step 10: Explain Implementation
+
+After the PR is open, explain the implementation to the user **in
+Japanese** in the chat:
+
+- What was implemented and why
+- Key design decisions and trade-offs
+- How the code works at a high level
+- Any notable points (e.g., edge cases handled, patterns used)
+
+Keep it concise but informative so the user can understand the changes
+without reading every line of code. This is the final step — the turn
+ends here.
 
 ### Step 11: Close Issue
 
