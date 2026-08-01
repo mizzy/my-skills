@@ -116,9 +116,9 @@ Choose execution flags deliberately:
     fall back to a fresh thread just to get write access.
 - **Reasoning effort** — leave unset unless the user explicitly asks. If
   set, pass `-c model_reasoning_effort="<level>"` where `<level>` is one
-  of `none`, `minimal`, `low`, `medium`, `high`, or `xhigh`.
-- **Model** — leave unset unless the user asks. Map `spark` to
-  `-m gpt-5.3-codex-spark`.
+  of `low`, `medium`, `high`, `xhigh`, or `max`.
+- **Model** — leave unset unless the user asks. Map `fast` to
+  `-m gpt-5.6-luna`.
 - **Working directory** — pass `-C <repo-dir>` so Codex operates in the
   intended repository root.
 
