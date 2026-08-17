@@ -324,7 +324,8 @@ After implementation is complete, invoke the **verify** skill automatically.
 - If verify fails, go back to debugging
 
 **→ Next: proceed to Step 7 in the same turn.** As soon as verify is
-green, invoke `/code-review` — do not stop to report "verify passed".
+green, invoke `/code-review` and `/ponytail-review` — do not stop to
+report "verify passed".
 
 ### Step 7: Simplify / clean up (Opus points, Codex edits)
 
@@ -345,8 +346,23 @@ After verify passes:
 - Keep effort at `low`/`medium`: the deep bug hunt belongs to the
   **review** skill in Step 8, so this pass stays a quality cleanup with
   light bug-spotting and avoids duplicating Step 8.
-- Hand the concrete list of cleanups to Codex (via the **codex** skill)
-  and have **Codex apply the edits**. Do not edit the files yourself.
+- Also run `/ponytail-review` over the same diff. `/code-review` looks
+  for correctness and general quality; `/ponytail-review` hunts only
+  over-engineering — reinvented stdlib, dependencies the platform
+  already covers, abstractions with one implementation, dead
+  flexibility. It is a one-shot report (one line per finding, ending
+  in `net: -N lines possible`), not a persistent mode, so it does not
+  bias the rest of the flow.
+- **Step 4.6 / 4.7 design decisions are out of scope for
+  `/ponytail-review`.** A newtype / typestate / tagged union chosen to
+  make a broken state unrepresentable will look like `yagni:` "one
+  implementation, inline it" to a complexity-only reviewer. Those are
+  deliberate type-safety choices — discard such findings rather than
+  handing them to Codex. Everything else `/ponytail-review` flags is
+  fair game.
+- Merge the surviving findings from both reviews into one concrete list,
+  hand it to Codex (via the **codex** skill), and have **Codex apply the
+  edits**. Do not edit the files yourself.
 - Re-run **verify** if changes were made.
 
 **→ Next: proceed to Step 8 in the same turn.** After simplify (and any
