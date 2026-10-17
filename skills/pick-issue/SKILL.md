@@ -423,7 +423,8 @@ turn on the PR URL alone when Step 10 has not yet run.
 ### Step 10: Explain Implementation
 
 After the PR is open, explain the implementation to the user **in
-Japanese** in the chat:
+Japanese** as an **HTML artifact** (publish it with the Artifact tool,
+following the **artifact-design** skill), not as chat text:
 
 - What was implemented and why
 - Key design decisions and trade-offs
@@ -431,7 +432,11 @@ Japanese** in the chat:
 - Any notable points (e.g., edge cases handled, patterns used)
 
 Keep it concise but informative so the user can understand the changes
-without reading every line of code. This is the final step — the turn
+without reading every line of code. Link the PR URL from the page. In
+the chat, reply with only the artifact URL and the PR URL plus a
+one-line summary — do not repeat the explanation there. If the Artifact
+tool is unavailable, fall back to the explanation in chat. This is the
+final step — the turn
 ends here.
 
 ### Step 11: Close Issue
