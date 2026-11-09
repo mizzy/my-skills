@@ -216,6 +216,12 @@ guard / carve-out at every consumer site.
   Newtypes, tagged unions, typestate — over runtime filters at every
   consumer. Make the broken state unrepresentable.
 
+**Record regressions.** When the bug was introduced by an already-merged
+PR, label the Issue `regression` and add `Regressed by #<PR>` to its body
+(create the label first if the repo lacks it). The **metrics** skill counts
+these lines as defects that got past the workflow; an unlabelled regression
+is invisible to it.
+
 If the Issue is not a bug fix (e.g., a new feature or refactor), this
 step is a no-op — proceed to Step 5.
 
