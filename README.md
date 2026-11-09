@@ -16,6 +16,7 @@ Personal Claude Code skills for a design-first, TDD-driven development workflow:
 | `review` | Run 5 rounds of self-review against the plan/spec, fixing issues each round. |
 | `merge-when-ready` | Wait for CI to pass, mark draft PRs ready, remove the worktree, then merge and clean up. |
 | `codex` | Delegate all hands-on work (plan-writing, implementation, refactoring) to Codex. |
+| `metrics` | Measure the workflow per merged PR (rework, CI rounds, tokens, regressions) from GitHub and local Claude Code / Codex logs. |
 
 ## Install
 
