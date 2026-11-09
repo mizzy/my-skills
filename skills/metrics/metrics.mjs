@@ -56,12 +56,27 @@ const median = (xs) => {
 };
 
 // Pure join of everything collected into one row per merged PR.
-export function buildRows({ prs, runs, regressionBodies, claude, codex }) {
+export const isFailed = (run) => run.conclusion === 'failure' || run.conclusion === 'timed_out';
+
+// "Workspace tests (3/6)" -> "Workspace tests": shards of one job are one kind of failure.
+export const jobKind = (name) => name.replace(/\s*\(\d+\/\d+\)$/, '');
+
+// failedJobs: Map of run databaseId -> names of the jobs that failed in it.
+export function buildRows({ prs, runs, failedJobs = new Map(), regressionBodies, claude, codex }) {
+  const add = (m, k, v) => (m.get(k) ?? m.set(k, new Set()).get(k)).add(v);
   const shas = new Map();
+  const failedShas = new Map();
+  const kinds = new Map(); // branch -> Map(kind -> Set(sha))
   for (const r of runs) {
-    if (!shas.has(r.headBranch)) shas.set(r.headBranch, new Set());
-    shas.get(r.headBranch).add(r.headSha);
+    add(shas, r.headBranch, r.headSha);
+    if (!isFailed(r)) continue;
+    add(failedShas, r.headBranch, r.headSha);
+    if (!kinds.has(r.headBranch)) kinds.set(r.headBranch, new Map());
+    for (const j of failedJobs.get(r.databaseId) ?? []) add(kinds.get(r.headBranch), jobKind(j), r.headSha);
   }
+  const kindCell = (branch) => [...(kinds.get(branch) ?? new Map())]
+    .map(([k, s]) => [k, s.size]).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([k, c]) => `${k}:${c}`).join(';');
   const regressedBy = new Map();
   for (const body of regressionBodies) {
     for (const [, n] of (body ?? '').matchAll(/regressed by #(\d+)/gi)) {
@@ -76,11 +91,13 @@ export function buildRows({ prs, runs, regressionBodies, claude, codex }) {
       title: pr.title,
       merged_at: pr.mergedAt,
       hours_to_merge: Math.round((Date.parse(pr.mergedAt) - opened) / 36e5 * 10) / 10,
-      commits_after_open: pr.commits.filter((c) => Date.parse(c.committedDate) > opened).length,
+      ci_failed_rounds: failedShas.get(pr.headRefName)?.size ?? 0,
+      ci_failed_kinds: kindCell(pr.headRefName),
       ci_rounds: shas.get(pr.headRefName)?.size ?? 0,
       claude_tokens: claude.get(pr.headRefName) ?? 0,
       codex_tokens: codex.get(pr.headRefName) ?? 0,
       regressions: regressedBy.get(pr.number) ?? 0,
+      commits_after_open: pr.commits.filter((c) => Date.parse(c.committedDate) > opened).length,
     };
   });
 }
@@ -88,13 +105,24 @@ export function buildRows({ prs, runs, regressionBodies, claude, codex }) {
 export function summarize(rows) {
   const n = rows.length;
   const pct = (k) => (n ? Math.round(rows.filter(k).length / n * 100) : 0);
+  const byKind = new Map();
+  for (const r of rows) {
+    for (const cell of r.ci_failed_kinds ? r.ci_failed_kinds.split(';') : []) {
+      const i = cell.lastIndexOf(':');
+      byKind.set(cell.slice(0, i), (byKind.get(cell.slice(0, i)) ?? 0) + Number(cell.slice(i + 1)));
+    }
+  }
+  const kinds = [...byKind].sort((a, b) => b[1] - a[1]).map(([k, c]) => `${k} ${c}`).join(', ');
   return [
     `merged PRs: ${n}`,
-    `merged with no commits after open: ${pct((r) => r.commits_after_open === 0)}%`,
+    `PRs with a failed CI round: ${pct((r) => r.ci_failed_rounds > 0)}%`,
+    `failed CI rounds: ${rows.reduce((a, r) => a + r.ci_failed_rounds, 0)}`,
+    `failed CI rounds by job: ${kinds || 'none'}`,
     `median CI rounds: ${median(rows.map((r) => r.ci_rounds))}`,
     `median tokens per PR (uncached, Claude+Codex): ${median(rows.map((r) => r.claude_tokens + r.codex_tokens))}`,
     `PRs with no token data (branch not found in logs): ${pct((r) => r.claude_tokens + r.codex_tokens === 0)}%`,
     `regressions traced to these PRs: ${rows.reduce((a, r) => a + r.regressions, 0)}`,
+    `(secondary) merged with no commits after open: ${pct((r) => r.commits_after_open === 0)}%`,
   ].join('\n');
 }
 
@@ -178,7 +206,14 @@ async function main() {
   const startMs = Math.min(Date.parse(since), ...prs.map((p) => Date.parse(p.createdAt))) - 7 * 864e5;
   const start = new Date(startMs).toISOString().slice(0, 10);
   const runs = gh(['run', 'list', '-R', repo, '--created', `>=${start}`, '--limit', '10000',
-    '--json', 'headBranch,headSha']);
+    '--json', 'databaseId,headBranch,headSha,conclusion']);
+  // Job names only for failed runs on these PRs' branches: one call per failed run.
+  const branches = new Set(prs.map((p) => p.headRefName));
+  const failedJobs = new Map(runs.filter((r) => isFailed(r) && branches.has(r.headBranch)).map((r) => [
+    r.databaseId,
+    gh(['run', 'view', String(r.databaseId), '-R', repo, '--json', 'jobs']).jobs
+      .filter(isFailed).map((j) => j.name),
+  ]));
   // A missing `regression` label just means none recorded yet.
   let regressions = [];
   try {
@@ -187,7 +222,7 @@ async function main() {
   } catch { /* label absent */ }
 
   const [claude, codex] = await Promise.all([claudeTokensByBranch(repo, startMs), codexTokensByBranch(repo, startMs)]);
-  const rows = buildRows({ prs, runs, regressionBodies: regressions.map((i) => i.body), claude, codex });
+  const rows = buildRows({ prs, runs, failedJobs, regressionBodies: regressions.map((i) => i.body), claude, codex });
   console.log(toCsv(rows));
   console.error(summarize(rows));
 }

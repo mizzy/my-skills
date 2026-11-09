@@ -1,6 +1,6 @@
 ---
 name: metrics
-description: "Use to measure how the agent workflow is performing on a repository - aggregates per-PR rework, CI rounds, token usage, and regressions from GitHub and local Claude Code / Codex logs, then points at what to fix; in weekly report mode keeps history and publishes a fixed-URL Artifact"
+description: "Use to measure how the agent workflow is performing on a repository - aggregates per-PR failed CI rounds by job, CI rounds, token usage, and regressions from GitHub and local Claude Code / Codex logs, then points at what to fix; in weekly report mode keeps history and publishes a fixed-URL Artifact"
 ---
 
 # Metrics
@@ -33,13 +33,21 @@ node <this skill's directory>/metrics.mjs --repo <owner>/<name> [--since YYYY-MM
 
 ### Step 2: Read the summary, then the outliers
 
+Primary metrics:
+
 | Column | Meaning | When it is bad, look at |
 | --- | --- | --- |
-| `commits_after_open` | Commits pushed after the PR was opened (CI fixes, review feedback). 0 = merged as first submitted | The Issue's acceptance criteria and the repo's rule files: the agent did not know what was expected |
+| `ci_failed_rounds` | Distinct commits on the branch with a failed (or timed-out) CI run. Cancelled runs do not count | Local pre-PR verify: CI caught what it missed |
+| `ci_failed_kinds` | `job:commits` per failed job name, shard suffixes like `(1/6)` dropped. An aggregating required job (e.g. carina's `Test`) fails alongside the job that really failed; read the other names | Which check to add to, or align with, local verify |
 | `ci_rounds` | Distinct commits CI ran on for the branch | Local checks (hooks, pre-push) that should have caught it before CI |
 | `claude_tokens` / `codex_tokens` | Uncached tokens (input + cache writes + output) in sessions on that branch | Issue size: split Issues that cost far above the median |
 | `regressions` | Issues labelled `regression` whose body says `Regressed by #<PR>` | Tests and review: what let the defect through |
 | `hours_to_merge` | PR opened → merged | Where PRs wait (CI time, review loops) |
+
+Secondary: `commits_after_open` (commits pushed after the PR was opened).
+It mixes CI fixes, review feedback, and flows that open the PR before CI
+has run, so it rises when a repo deliberately lets PR CI do the full run.
+Use it only to find PRs to read, not to judge a change.
 
 Sort by each column and read the top few PRs; a pattern across them is the
 thing to fix. Report the summary and the patterns to the user, not the CSV.
@@ -67,6 +75,12 @@ can be compared directly.
 
 - Read every `D/*.summary.txt` for the trend, and `D/<TODAY>.csv` for this
   week's outliers (Step 2).
+- Read `D/changes.md`, if present: one line per workflow change,
+  `YYYY-MM-DD: <change> (<Issue/PR>)`. Mark each change on the trend and
+  compare the weeks before and after it; a metric that shifts right after a
+  change is explained by that change, not by drift. Whoever changes the
+  workflow (rule files, verify flow, CI) appends the line on the day it
+  merges.
 - Read the newest earlier `D/*.proposals.md`, if any: for each proposal,
   state whether its target metric moved the way it predicted.
 - Write at most 3 new proposals to `D/<TODAY>.proposals.md`. Each one names

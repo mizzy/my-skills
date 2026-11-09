@@ -1,7 +1,7 @@
 // Run: node --test skills/metrics/metrics.test.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildRows, claudeUsage, codexMeta, codexTokens, inRepo, repoOfUrl, toCsv } from './metrics.mjs';
+import { buildRows, claudeUsage, codexMeta, codexTokens, inRepo, repoOfUrl, summarize, toCsv } from './metrics.mjs';
 
 test('inRepo matches the checkout and its worktrees, not sibling repos', () => {
   assert.ok(inRepo('/src/github.com/carina-rs/carina', 'carina-rs/carina'));
@@ -37,14 +37,24 @@ test('buildRows joins GitHub data and tokens by branch', () => {
       number: 7, title: 'fix, "x"', headRefName: 'issue-1', createdAt: '2026-11-01T00:00:00Z', mergedAt: '2026-11-01T12:00:00Z',
       commits: [{ committedDate: '2026-10-31T23:00:00Z' }, { committedDate: '2026-11-01T01:00:00Z' }],
     }],
-    runs: [{ headBranch: 'issue-1', headSha: 'a' }, { headBranch: 'issue-1', headSha: 'a' }, { headBranch: 'issue-1', headSha: 'b' }, { headBranch: 'main', headSha: 'c' }],
+    runs: [
+      { databaseId: 1, headBranch: 'issue-1', headSha: 'a', conclusion: 'failure' },
+      { databaseId: 2, headBranch: 'issue-1', headSha: 'a', conclusion: 'failure' },
+      { databaseId: 3, headBranch: 'issue-1', headSha: 'b', conclusion: 'cancelled' },
+      { databaseId: 4, headBranch: 'issue-1', headSha: 'c', conclusion: 'success' },
+      { databaseId: 5, headBranch: 'main', headSha: 'd', conclusion: 'failure' },
+    ],
+    // Two runs on one commit, shards of one job: each kind counts that commit once.
+    failedJobs: new Map([[1, ['Workspace tests (1/6)', 'Workspace tests (4/6)', 'Test']], [2, ['Feature Isolation']]]),
     regressionBodies: ['Regressed by #7', 'regressed by #8', null],
     claude: new Map([['issue-1', 100]]),
     codex: new Map([['issue-1', 50]]),
   });
   assert.deepEqual(rows[0], {
     pr: 7, branch: 'issue-1', title: 'fix, "x"', merged_at: '2026-11-01T12:00:00Z', hours_to_merge: 12,
-    commits_after_open: 1, ci_rounds: 2, claude_tokens: 100, codex_tokens: 50, regressions: 1,
+    ci_failed_rounds: 1, ci_failed_kinds: 'Feature Isolation:1;Test:1;Workspace tests:1', ci_rounds: 3,
+    claude_tokens: 100, codex_tokens: 50, regressions: 1, commits_after_open: 1,
   });
   assert.match(toCsv(rows), /"fix, ""x"""/);
+  assert.match(summarize(rows), /failed CI rounds by job: Feature Isolation 1, Test 1, Workspace tests 1/);
 });
