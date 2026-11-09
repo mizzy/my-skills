@@ -1,6 +1,6 @@
 ---
 name: metrics
-description: "Use to measure how the agent workflow is performing on a repository - aggregates per-PR rework, CI rounds, token usage, and regressions from GitHub and local Claude Code / Codex logs, then points at what to fix"
+description: "Use to measure how the agent workflow is performing on a repository - aggregates per-PR rework, CI rounds, token usage, and regressions from GitHub and local Claude Code / Codex logs, then points at what to fix; in weekly report mode keeps history and publishes a fixed-URL Artifact"
 ---
 
 # Metrics
@@ -43,6 +43,51 @@ node <this skill's directory>/metrics.mjs --repo <owner>/<name> [--since YYYY-MM
 
 Sort by each column and read the top few PRs; a pattern across them is the
 thing to fix. Report the summary and the patterns to the user, not the CSV.
+
+## Weekly report mode
+
+Use this mode when the run is scheduled (e.g. from launchd via
+`claude --bg`) or the user asks for the weekly report. It keeps history,
+compares weeks, and publishes one Artifact whose URL never changes.
+
+Data directory: `D = ~/.local/share/factory-metrics/<owner>/<name>/`
+(create it if missing). `TODAY` = today's date, `YYYY-MM-DD`.
+
+### W1: Snapshot this week
+
+```
+node <this skill's directory>/metrics.mjs --repo <owner>/<name> --since <TODAY minus 7 days> \
+  > D/<TODAY>.csv 2> D/<TODAY>.summary.txt
+```
+
+Each snapshot covers exactly the last 7 days, so weeks do not overlap and
+can be compared directly.
+
+### W2: Compare and propose
+
+- Read every `D/*.summary.txt` for the trend, and `D/<TODAY>.csv` for this
+  week's outliers (Step 2).
+- Read the newest earlier `D/*.proposals.md`, if any: for each proposal,
+  state whether its target metric moved the way it predicted.
+- Write at most 3 new proposals to `D/<TODAY>.proposals.md`. Each one names
+  the pattern (with PR numbers), where to fix it (the repo's CLAUDE.md, a
+  my-skills skill, tests, CI), and which metric should move and in which
+  direction.
+- Do **not** file Issues. The user picks which proposals to adopt.
+- Proposals change the harness (rule files, skills, tests, CI); never hand
+  these metrics to an implementing agent as a target to optimise.
+
+### W3: Publish the Artifact
+
+- Load the `artifact-design` skill, then write the page in your scratchpad
+  directory, in the user's language: the trend across weeks (a chart), this
+  week's summary, the outlier PRs (linked), last week's proposals with
+  their outcome, and this week's proposals.
+- If `D/artifact-url` exists: `Artifact` `read` that URL first, then
+  publish with `url` set to it, so the link stays the same.
+- Otherwise publish a new Artifact (icon `chart`) and write its URL to
+  `D/artifact-url`.
+- Finish with one line: the Artifact URL.
 
 ## How the data is joined
 
