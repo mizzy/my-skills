@@ -41,6 +41,7 @@ Primary metrics:
 | `ci_failed_kinds` | `job:commits` per failed job name, shard suffixes like `(1/6)` dropped. An aggregating required job (e.g. carina's `Test`) fails alongside the job that really failed; read the other names | Which check to add to, or align with, local verify |
 | `ci_rounds` | Distinct commits CI ran on for the branch | Local checks (hooks, pre-push) that should have caught it before CI |
 | `claude_tokens` / `codex_tokens` | Uncached tokens (input + cache writes + output) in sessions on that branch | Issue size: split Issues that cost far above the median |
+| `tokens_before_open` / `tokens_after_open` | The same tokens (Claude + Codex) split at the PR's `createdAt` by each message's timestamp | Before: planning, critique and pre-PR review rounds. After: CI fixes and review feedback |
 | `regressions` | Issues labelled `regression` whose body says `Regressed by #<PR>` | Tests and review: what let the defect through |
 | `hours_to_merge` | PR opened → merged | Where PRs wait (CI time, review loops) |
 
@@ -111,8 +112,8 @@ can be compared directly.
   `cwd` is inside the repo, grouped by `gitBranch`, deduplicated by message
   and request id.
 - **Codex**: `~/.codex/sessions/**/*.jsonl`, sessions whose `session_meta`
-  git remote is the repo, grouped by its branch, max cumulative
-  `token_count` per session.
+  git remote is the repo, grouped by its branch; cumulative `token_count`
+  samples per session are turned into timestamped increments.
 - Logs are joined to PRs by **branch name**. Sessions on `main` (e.g. an
   orchestrator) are not attributed to any PR.
 
