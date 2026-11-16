@@ -28,6 +28,7 @@ export function claudeUsage(line, repo) {
   return {
     key: `${d.message.id}:${d.requestId}`,
     branch: d.gitBranch,
+    ts: Date.parse(d.timestamp),
     tokens: (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.output_tokens ?? 0),
   };
 }
@@ -40,12 +41,24 @@ export function codexMeta(line) {
   return { id: p.id, repo: repoOfUrl(p.git.repository_url), branch: p.git.branch };
 }
 
-// A Codex token_count event -> cumulative uncached tokens of the session so far.
+// A Codex token_count event -> { ts, tokens }: cumulative uncached tokens of the session so far.
 export function codexTokens(line) {
   if (!line.includes('"token_count"')) return null;
-  const t = parse(line)?.payload?.info?.total_token_usage;
+  const d = parse(line);
+  const t = d?.payload?.info?.total_token_usage;
   if (!t) return null;
-  return (t.input_tokens ?? 0) - (t.cached_input_tokens ?? 0) + (t.output_tokens ?? 0);
+  return { ts: Date.parse(d.timestamp), tokens: (t.input_tokens ?? 0) - (t.cached_input_tokens ?? 0) + (t.output_tokens ?? 0) };
+}
+
+// Cumulative { ts, tokens } samples of one session (any order, resumed files overlap) -> per-sample increments.
+export function codexDeltas(samples) {
+  let max = 0;
+  return [...samples].sort((a, b) => a.ts - b.ts).flatMap(({ ts, tokens }) => {
+    if (tokens <= max) return [];
+    const d = { ts, tokens: tokens - max };
+    max = tokens;
+    return [d];
+  });
 }
 
 const median = (xs) => {
@@ -62,6 +75,7 @@ export const isFailed = (run) => run.conclusion === 'failure' || run.conclusion 
 export const jobKind = (name) => name.replace(/\s*\(\d+\/\d+\)$/, '');
 
 // failedJobs: Map of run databaseId -> names of the jobs that failed in it.
+// claude / codex: Map of branch -> [{ ts, tokens }] usage events.
 export function buildRows({ prs, runs, failedJobs = new Map(), regressionBodies, claude, codex }) {
   const add = (m, k, v) => (m.get(k) ?? m.set(k, new Set()).get(k)).add(v);
   const shas = new Map();
@@ -85,6 +99,9 @@ export function buildRows({ prs, runs, failedJobs = new Map(), regressionBodies,
   }
   return prs.map((pr) => {
     const opened = Date.parse(pr.createdAt);
+    const events = (m) => m.get(pr.headRefName) ?? [];
+    const sum = (es, keep = () => true) => es.filter(keep).reduce((a, e) => a + e.tokens, 0);
+    const all = [...events(claude), ...events(codex)];
     return {
       pr: pr.number,
       branch: pr.headRefName,
@@ -94,8 +111,10 @@ export function buildRows({ prs, runs, failedJobs = new Map(), regressionBodies,
       ci_failed_rounds: failedShas.get(pr.headRefName)?.size ?? 0,
       ci_failed_kinds: kindCell(pr.headRefName),
       ci_rounds: shas.get(pr.headRefName)?.size ?? 0,
-      claude_tokens: claude.get(pr.headRefName) ?? 0,
-      codex_tokens: codex.get(pr.headRefName) ?? 0,
+      claude_tokens: sum(events(claude)),
+      codex_tokens: sum(events(codex)),
+      tokens_before_open: sum(all, (e) => !(e.ts > opened)),
+      tokens_after_open: sum(all, (e) => e.ts > opened),
       regressions: regressedBy.get(pr.number) ?? 0,
       commits_after_open: pr.commits.filter((c) => Date.parse(c.committedDate) > opened).length,
     };
@@ -120,6 +139,7 @@ export function summarize(rows) {
     `failed CI rounds by job: ${kinds || 'none'}`,
     `median CI rounds: ${median(rows.map((r) => r.ci_rounds))}`,
     `median tokens per PR (uncached, Claude+Codex): ${median(rows.map((r) => r.claude_tokens + r.codex_tokens))}`,
+    `median tokens per PR before / after open: ${median(rows.map((r) => r.tokens_before_open))} / ${median(rows.map((r) => r.tokens_after_open))}`,
     `PRs with no token data (branch not found in logs): ${pct((r) => r.claude_tokens + r.codex_tokens === 0)}%`,
     `regressions traced to these PRs: ${rows.reduce((a, r) => a + r.regressions, 0)}`,
     `(secondary) merged with no commits after open: ${pct((r) => r.commits_after_open === 0)}%`,
@@ -150,29 +170,29 @@ async function claudeTokensByBranch(repo, sinceMs) {
     }
   }
   const out = new Map();
-  for (const { branch, tokens } of byKey.values()) out.set(branch, (out.get(branch) ?? 0) + tokens);
+  for (const { branch, ts, tokens } of byKey.values()) (out.get(branch) ?? out.set(branch, []).get(branch)).push({ ts, tokens });
   return out;
 }
 
 async function codexTokensByBranch(repo, sinceMs) {
-  const bySession = new Map(); // a resumed session can span files; keep its max cumulative total
+  const bySession = new Map(); // a resumed session can span files; its samples are merged
   for (const f of jsonlFiles(join(homedir(), '.codex', 'sessions'), sinceMs)) {
     let meta;
-    let max = 0;
     for await (const line of lines(f)) {
       if (meta === undefined) {
         meta = codexMeta(line);
         if (meta?.repo !== repo) break;
+        if (!bySession.has(meta.id)) bySession.set(meta.id, { branch: meta.branch, samples: [] });
         continue;
       }
-      max = Math.max(max, codexTokens(line) ?? 0);
+      const t = codexTokens(line);
+      if (t) bySession.get(meta.id).samples.push(t);
     }
-    if (meta?.repo !== repo) continue;
-    const prev = bySession.get(meta.id);
-    if (!prev || max > prev.tokens) bySession.set(meta.id, { branch: meta.branch, tokens: max });
   }
   const out = new Map();
-  for (const { branch, tokens } of bySession.values()) out.set(branch, (out.get(branch) ?? 0) + tokens);
+  for (const { branch, samples } of bySession.values()) {
+    (out.get(branch) ?? out.set(branch, []).get(branch)).push(...codexDeltas(samples));
+  }
   return out;
 }
 
